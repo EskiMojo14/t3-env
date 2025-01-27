@@ -1,5 +1,5 @@
 import type { StandardSchemaDictionary, StandardSchemaV1 } from "./standard";
-import { ensureSynchronous, parseWithDictionary } from "./standard";
+import { createObjectSchema, ensureSynchronous } from "./standard";
 
 export type { StandardSchemaV1, StandardSchemaDictionary };
 
@@ -180,7 +180,7 @@ export interface ServerOptions<
   }>;
 }
 
-export interface CreateSchemaOptions<
+export interface FinalSchemaOptions<
   TServer extends StandardSchemaDictionary,
   TClient extends StandardSchemaDictionary,
   TShared extends StandardSchemaDictionary,
@@ -194,6 +194,14 @@ export interface CreateSchemaOptions<
     shape: TServer & TClient & TShared,
     isServer: boolean,
   ) => TFinalSchema;
+
+  /**
+   * A custom function to extract defaults from the schema, when skipping validation.
+   * Allows a *little* more type safety, since you can make sure that transformations are matched.
+   */
+  getEnvDefaults?: (
+    schema: TFinalSchema,
+  ) => Partial<StandardSchemaV1.InferOutput<TFinalSchema>>;
 }
 
 export type ServerClientOptions<
@@ -218,7 +226,7 @@ export type EnvOptions<
   | (StrictOptions<TPrefix, TServer, TClient, TShared, TExtends> &
       ServerClientOptions<TPrefix, TServer, TClient>)
 ) &
-  CreateSchemaOptions<TServer, TClient, TShared, TFinalSchema>;
+  FinalSchemaOptions<TServer, TClient, TShared, TFinalSchema>;
 
 type TPrefixFormat = string | undefined;
 type TServerFormat = StandardSchemaDictionary;
@@ -272,10 +280,6 @@ export function createEnv<
     }
   }
 
-  const skip = !!opts.skipValidation;
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  if (skip) return runtimeEnv as any;
-
   const _client = typeof opts.client === "object" ? opts.client : {};
   const _server = typeof opts.server === "object" ? opts.server : {};
   const _shared = typeof opts.shared === "object" ? opts.shared : {};
@@ -293,11 +297,19 @@ export function createEnv<
         ..._shared,
       };
 
-  const parsed =
-    opts
-      .createFinalSchema?.(finalSchemaShape as never, isServer)
-      ["~standard"].validate(runtimeEnv) ??
-    parseWithDictionary(finalSchemaShape, runtimeEnv);
+  const finalSchema = (opts.createFinalSchema ?? createObjectSchema)(
+    finalSchemaShape as never,
+    isServer,
+  ) as TFinalSchema;
+
+  if (opts.skipValidation) {
+    return {
+      ...opts.getEnvDefaults?.(finalSchema),
+      ...runtimeEnv,
+    } as never;
+  }
+
+  const parsed = finalSchema["~standard"].validate(runtimeEnv);
 
   ensureSynchronous(parsed, "Validation must be synchronous");
 

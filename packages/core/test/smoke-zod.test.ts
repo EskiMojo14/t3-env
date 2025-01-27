@@ -742,3 +742,52 @@ describe("createFinalSchema", () => {
     expect(env).toMatchObject({ SKIP_AUTH: true });
   });
 });
+
+describe("getEnvDefaults", () => {
+  test("can be used to get defaults from schema", () => {
+    const serverSchema = {
+      SKIP_AUTH: z.boolean().optional().default(false),
+      EMAIL: z.string().email().default("foo@bar.com"),
+      PASSWORD: z.string().min(1).default("password"),
+    };
+    const withoutGetEnvDefaults = createEnv({
+      server: serverSchema,
+      runtimeEnv: {},
+      createFinalSchema: (shape) => z.object(shape),
+      skipValidation: true,
+    });
+    expectTypeOf(withoutGetEnvDefaults).toEqualTypeOf<
+      Readonly<{
+        SKIP_AUTH: boolean;
+        EMAIL: string;
+        PASSWORD: string;
+      }>
+    >();
+    // :(
+    expect(withoutGetEnvDefaults).toMatchObject({});
+    const withGetEnvDefaults = createEnv({
+      server: serverSchema,
+      runtimeEnv: {},
+      skipValidation: true,
+      createFinalSchema: (shape) => z.object(shape),
+      getEnvDefaults: (schema) => ({
+        SKIP_AUTH: schema.shape.SKIP_AUTH._def.defaultValue(),
+        EMAIL: schema.shape.EMAIL._def.defaultValue(),
+        PASSWORD: schema.shape.PASSWORD._def.defaultValue(),
+      }),
+    });
+    expectTypeOf(withGetEnvDefaults).toEqualTypeOf<
+      Readonly<{
+        SKIP_AUTH: boolean;
+        EMAIL: string;
+        PASSWORD: string;
+      }>
+    >();
+    // :)
+    expect(withGetEnvDefaults).toMatchObject({
+      SKIP_AUTH: false,
+      EMAIL: "foo@bar.com",
+      PASSWORD: "password",
+    });
+  });
+});

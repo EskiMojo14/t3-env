@@ -94,33 +94,50 @@ export function ensureSynchronous<T>(
   }
 }
 
-export function parseWithDictionary<TDict extends StandardSchemaDictionary>(
+export function createObjectSchema<TDict extends StandardSchemaDictionary>(
   dictionary: TDict,
-  value: Record<string, unknown>,
-): StandardSchemaV1.Result<StandardSchemaDictionary.InferOutput<TDict>> {
-  const result: Record<string, unknown> = {};
-  const issues: StandardSchemaV1.Issue[] = [];
-  for (const key in dictionary) {
-    const propResult = dictionary[key]["~standard"].validate(value[key]);
+): StandardSchemaV1<
+  StandardSchemaDictionary.InferInput<TDict>,
+  StandardSchemaDictionary.InferOutput<TDict>
+> {
+  return {
+    "~standard": {
+      version: 1,
+      vendor: "t3-oss/env",
+      validate(value) {
+        if (typeof value !== "object" || value === null) {
+          return { issues: [{ message: "Expected object" }] };
+        }
 
-    ensureSynchronous(
-      propResult,
-      `Validation must be synchronous, but ${key} returned a Promise.`,
-    );
+        const result: Record<string, unknown> = {};
+        const issues: StandardSchemaV1.Issue[] = [];
 
-    if (propResult.issues) {
-      issues.push(
-        ...propResult.issues.map((issue) => ({
-          ...issue,
-          path: [key, ...(issue.path ?? [])],
-        })),
-      );
-      continue;
-    }
-    result[key] = propResult.value;
-  }
-  if (issues.length) {
-    return { issues };
-  }
-  return { value: result as never };
+        for (const key in dictionary) {
+          const schema = dictionary[key];
+          const prop = (value as Record<string, unknown>)[key];
+          const propResult = schema["~standard"].validate(prop);
+
+          ensureSynchronous(
+            propResult,
+            `Validation must be synchronous, but ${key} returned a Promise.`,
+          );
+
+          if (propResult.issues) {
+            issues.push(
+              ...propResult.issues.map((issue) => ({
+                ...issue,
+                path: [key, ...(issue.path ?? [])],
+              })),
+            );
+            continue;
+          }
+          result[key] = propResult.value;
+        }
+        if (issues.length) {
+          return { issues };
+        }
+        return { value: result as never };
+      },
+    },
+  };
 }
