@@ -199,9 +199,10 @@ export interface FinalSchemaOptions<
    * A custom function to extract defaults from the schema, when skipping validation.
    * Allows a *little* more type safety, since you can make sure that transformations are matched.
    */
-  getEnvDefaults?: (
+  getUnvalidatedEnv?: (
     schema: TFinalSchema,
-  ) => Partial<StandardSchemaV1.InferOutput<TFinalSchema>>;
+    runtimeEnv: Record<string, string | boolean | number | undefined>,
+  ) => StandardSchemaV1.InferOutput<TFinalSchema>;
 }
 
 export type ServerClientOptions<
@@ -255,6 +256,15 @@ export type CreateEnv<
   >
 >;
 
+function applyExtends(
+  base: Record<string, unknown>,
+  extendsArr: TExtendsFormat = [],
+): Record<string, unknown> {
+  return extendsArr.reduce((acc, curr) => {
+    return Object.assign(acc, curr);
+  }, base);
+}
+
 export function createEnv<
   TPrefix extends TPrefixFormat,
   TServer extends TServerFormat = NonNullable<unknown>,
@@ -303,10 +313,10 @@ export function createEnv<
   ) as TFinalSchema;
 
   if (opts.skipValidation) {
-    return {
-      ...opts.getEnvDefaults?.(finalSchema),
-      ...runtimeEnv,
-    } as never;
+    const unvalidatedEnv = opts.getUnvalidatedEnv
+      ? opts.getUnvalidatedEnv(finalSchema, runtimeEnv as never)
+      : runtimeEnv;
+    return applyExtends(unvalidatedEnv, opts.extends) as never;
   }
 
   const parsed = finalSchema["~standard"].validate(runtimeEnv);
@@ -343,10 +353,7 @@ export function createEnv<
     return prop === "__esModule" || prop === "$$typeof";
   };
 
-  const extendedObj = (opts.extends ?? []).reduce((acc, curr) => {
-    return Object.assign(acc, curr);
-  }, {});
-  const fullObj = Object.assign(parsed.value, extendedObj);
+  const fullObj = applyExtends(parsed.value, opts.extends);
 
   const env = new Proxy(fullObj, {
     get(target, prop) {
