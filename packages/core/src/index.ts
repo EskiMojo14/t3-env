@@ -41,7 +41,7 @@ export type SkipValidationOptions<
        * Whether to skip validation of environment variables.
        * @default false
        */
-      skipValidation?: never;
+      skipValidation?: false;
 
       /**
        * A custom function to return the env shape, when skipping validation.
