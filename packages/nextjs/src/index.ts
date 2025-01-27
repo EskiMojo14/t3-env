@@ -1,8 +1,9 @@
 import type {
   CreateEnv,
-  CreateSchemaOptions,
   DefaultCombinedSchema,
+  FinalSchemaOptions,
   ServerClientOptions,
+  SkipValidationOptions,
   StandardSchemaDictionary,
   StandardSchemaV1,
   StrictOptions,
@@ -21,7 +22,8 @@ type Options<
 > = Omit<
   StrictOptions<ClientPrefix, TServer, TClient, TShared, TExtends> &
     ServerClientOptions<ClientPrefix, TServer, TClient> &
-    CreateSchemaOptions<TServer, TClient, TShared, TFinalSchema>,
+    FinalSchemaOptions<TServer, TClient, TShared, TFinalSchema> &
+    SkipValidationOptions<TFinalSchema>,
   "runtimeEnvStrict" | "runtimeEnv" | "clientPrefix"
 > &
   (
@@ -74,10 +76,6 @@ export function createEnv<
 >(
   opts: Options<TServer, TClient, TShared, TExtends, TFinalSchema>,
 ): CreateEnv<TFinalSchema, TExtends> {
-  const client = typeof opts.client === "object" ? opts.client : {};
-  const server = typeof opts.server === "object" ? opts.server : {};
-  const shared = opts.shared;
-
   const runtimeEnv = opts.runtimeEnv
     ? opts.runtimeEnv
     : {
@@ -94,10 +92,7 @@ export function createEnv<
     TFinalSchema
   >({
     ...opts,
-    shared,
-    client,
-    server,
     clientPrefix: CLIENT_PREFIX,
     runtimeEnv,
-  });
+  } as never);
 }

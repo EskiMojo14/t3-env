@@ -33,7 +33,9 @@ type Reduce<
       : never
     : never;
 
-type SkipValidationOptions<TFinalSchema extends StandardSchemaV1<{}, {}>> =
+export type SkipValidationOptions<
+  TFinalSchema extends StandardSchemaV1<{}, {}>,
+> =
   | {
       /**
        * Whether to skip validation of environment variables.
@@ -219,15 +221,6 @@ export interface FinalSchemaOptions<
     shape: TServer & TClient & TShared,
     isServer: boolean,
   ) => TFinalSchema;
-
-  /**
-   * A custom function to extract defaults from the schema, when skipping validation.
-   * Allows a *little* more type safety, since you can make sure that transformations are matched.
-   */
-  getUnvalidatedEnv?: (
-    schema: TFinalSchema,
-    runtimeEnv: Record<string, string | boolean | number | undefined>,
-  ) => StandardSchemaV1.InferOutput<TFinalSchema>;
 }
 
 export type ServerClientOptions<
@@ -316,20 +309,18 @@ export function createEnv<
     }
   }
 
-  const _client = typeof opts.client === "object" ? opts.client : {};
-  const _server = typeof opts.server === "object" ? opts.server : {};
-  const _shared = typeof opts.shared === "object" ? opts.shared : {};
+  const _shared = opts.shared ?? {};
   const isServer =
     opts.isServer ?? (typeof window === "undefined" || "Deno" in window);
 
   const finalSchemaShape = isServer
     ? {
-        ..._server,
+        ...opts.server,
         ..._shared,
-        ..._client,
+        ...opts.client,
       }
     : {
-        ..._client,
+        ...opts.client,
         ..._shared,
       };
 
