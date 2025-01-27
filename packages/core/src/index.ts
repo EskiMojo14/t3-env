@@ -61,8 +61,8 @@ export type SkipValidationOptions<
        * Allows a *little* more type safety, since you can make sure that transformations are matched.
        */
       getUnvalidatedEnv: (
-        schema: TFinalSchema,
         runtimeEnv: Record<string, string | boolean | number | undefined>,
+        schema: TFinalSchema,
       ) => StandardSchemaV1.InferOutput<TFinalSchema>;
     };
 
@@ -330,7 +330,12 @@ export function createEnv<
   ) as TFinalSchema;
 
   if (opts.skipValidation) {
-    const unvalidatedEnv = opts.getUnvalidatedEnv(finalSchema, runtimeEnv);
+    if (!opts.getUnvalidatedEnv) {
+      throw new Error(
+        "getUnvalidatedEnv is required when skipValidation is true",
+      );
+    }
+    const unvalidatedEnv = opts.getUnvalidatedEnv(runtimeEnv, finalSchema);
     return applyExtends(unvalidatedEnv, opts.extends) as never;
   }
 

@@ -754,7 +754,7 @@ describe("getUnvalidatedEnv", () => {
       runtimeEnv: {},
       skipValidation: true,
       createFinalSchema: (shape) => z.object(shape),
-      getUnvalidatedEnv: (schema, env) => ({
+      getUnvalidatedEnv: (env, schema) => ({
         SKIP_AUTH: schema.shape.SKIP_AUTH._def.defaultValue(),
         EMAIL: schema.shape.EMAIL._def.defaultValue(),
         PASSWORD: schema.shape.PASSWORD._def.defaultValue(),

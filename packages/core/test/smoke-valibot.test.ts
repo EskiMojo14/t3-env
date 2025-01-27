@@ -753,7 +753,7 @@ describe("getUnvalidatedEnv", () => {
       runtimeEnv: {},
       skipValidation: true,
       createFinalSchema: (shape) => v.object(shape),
-      getUnvalidatedEnv: (schema, env) => ({
+      getUnvalidatedEnv: (env, schema) => ({
         ...v.getDefaults(schema),
         ...env,
       }),

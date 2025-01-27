@@ -23,6 +23,35 @@ export const env = createEnv({
   // ...
   // Tell the library to skip validation if condition is true.
   skipValidation: false,
+  // return the env shape, when skipping validation.
+  getUnvalidatedEnv: (env, schema) => env
+});
+```
+
+For type safety, you're required to provide a `getUnvalidatedEnv` callback if using `skipValidation`. This provides the opportunity to extract defaults from your schema, or to apply any necessary transformations the schema would normally be in charge of.
+
+```ts title="src/env.ts"
+import { createEnv } from "@t3-oss/env-core";
+import { v } from "valibot";
+
+export const env = createEnv({
+  server: {
+    SKIP_AUTH: v.optional(v.boolean(), false),
+    EMAIL: v.optional(v.pipe(v.string(), v.email()), "foo@bar.com"),
+    PASSWORD: v.optional(v.pipe(v.string(), v.minLength(1)), "password"),
+    SECRET_NUMBER: v.pipe(
+      v.string(),
+      v.transform((s) => parseInt(s, 10)),
+      v.number(),
+    )
+  },
+  // ...
+  skipValidation: true,
+  getUnvalidatedEnv: (env, schema) => ({
+    ...v.getDefaults(schema),
+    ...env,
+    SECRET_NUMBER: typeof env.SECRET_NUMBER === "string" ? parseInt(env.SECRET_NUMBER, 10) : v.getDefault(schema.entries.SECRET_NUMBER),
+  }),
 });
 ```
 
