@@ -33,6 +33,37 @@ type Reduce<
       : never
     : never;
 
+type SkipValidationOptions<TFinalSchema extends StandardSchemaV1<{}, {}>> =
+  | {
+      /**
+       * Whether to skip validation of environment variables.
+       * @default false
+       */
+      skipValidation?: never;
+
+      /**
+       * A custom function to return the env shape, when skipping validation.
+       * Allows a *little* more type safety, since you can make sure that transformations are matched.
+       */
+      getUnvalidatedEnv?: never;
+    }
+  | {
+      /**
+       * Whether to skip validation of environment variables.
+       * @default false
+       */
+      skipValidation: boolean;
+
+      /**
+       * A custom function to return the env shape, when skipping validation.
+       * Allows a *little* more type safety, since you can make sure that transformations are matched.
+       */
+      getUnvalidatedEnv: (
+        schema: TFinalSchema,
+        runtimeEnv: Record<string, string | boolean | number | undefined>,
+      ) => StandardSchemaV1.InferOutput<TFinalSchema>;
+    };
+
 export interface BaseOptions<
   TShared extends StandardSchemaDictionary,
   TExtends extends Array<Record<string, unknown>>,
@@ -65,12 +96,6 @@ export interface BaseOptions<
    * By default an error is thrown.
    */
   onInvalidAccess?: (variable: string) => never;
-
-  /**
-   * Whether to skip validation of environment variables.
-   * @default false
-   */
-  skipValidation?: boolean;
 
   /**
    * By default, this library will feed the environment variables directly to
@@ -227,7 +252,8 @@ export type EnvOptions<
   | (StrictOptions<TPrefix, TServer, TClient, TShared, TExtends> &
       ServerClientOptions<TPrefix, TServer, TClient>)
 ) &
-  FinalSchemaOptions<TServer, TClient, TShared, TFinalSchema>;
+  FinalSchemaOptions<TServer, TClient, TShared, TFinalSchema> &
+  SkipValidationOptions<TFinalSchema>;
 
 type TPrefixFormat = string | undefined;
 type TServerFormat = StandardSchemaDictionary;
@@ -313,9 +339,7 @@ export function createEnv<
   ) as TFinalSchema;
 
   if (opts.skipValidation) {
-    const unvalidatedEnv = opts.getUnvalidatedEnv
-      ? opts.getUnvalidatedEnv(finalSchema, runtimeEnv as never)
-      : runtimeEnv;
+    const unvalidatedEnv = opts.getUnvalidatedEnv(finalSchema, runtimeEnv);
     return applyExtends(unvalidatedEnv, opts.extends) as never;
   }
 

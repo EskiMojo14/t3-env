@@ -745,29 +745,12 @@ describe("createFinalSchema", () => {
 
 describe("getUnvalidatedEnv", () => {
   test("can be used to get defaults from schema", () => {
-    const serverSchema = {
-      SKIP_AUTH: z.boolean().optional().default(false),
-      EMAIL: z.string().email().default("foo@bar.com"),
-      PASSWORD: z.string().min(1).default("password"),
-    };
-    const withoutGetUnvalidatedEnv = createEnv({
-      server: serverSchema,
-      runtimeEnv: {},
-      createFinalSchema: (shape) => z.object(shape),
-      skipValidation: true,
-    });
-    expectTypeOf(withoutGetUnvalidatedEnv).toEqualTypeOf<
-      Readonly<{
-        SKIP_AUTH: boolean;
-        EMAIL: string;
-        PASSWORD: string;
-      }>
-    >();
-    // :(
-    expect(withoutGetUnvalidatedEnv).toMatchObject({});
-
-    const withGetUnvalidatedEnv = createEnv({
-      server: serverSchema,
+    const env = createEnv({
+      server: {
+        SKIP_AUTH: z.boolean().optional().default(false),
+        EMAIL: z.string().email().default("foo@bar.com"),
+        PASSWORD: z.string().min(1).default("password"),
+      },
       runtimeEnv: {},
       skipValidation: true,
       createFinalSchema: (shape) => z.object(shape),
@@ -778,15 +761,14 @@ describe("getUnvalidatedEnv", () => {
         ...env,
       }),
     });
-    expectTypeOf(withGetUnvalidatedEnv).toEqualTypeOf<
+    expectTypeOf(env).toEqualTypeOf<
       Readonly<{
         SKIP_AUTH: boolean;
         EMAIL: string;
         PASSWORD: string;
       }>
     >();
-    // :)
-    expect(withGetUnvalidatedEnv).toMatchObject({
+    expect(env).toMatchObject({
       SKIP_AUTH: false,
       EMAIL: "foo@bar.com",
       PASSWORD: "password",
