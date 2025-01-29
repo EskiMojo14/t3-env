@@ -44,6 +44,7 @@ export const env = createEnv({
     )
   },
   // ...
+  getFinalSchema: (shape) => v.object(shape),
   skipValidation: true,
   getUnvalidatedEnv: (env, schema) => ({
     ...v.getDefaults(schema),
