@@ -407,6 +407,161 @@ const extendingPresets = describe("extending presets", {
 
     consoleError.mockRestore();
   }),
+
+  singlePreset: describe("single preset", () => {
+    const processEnv = {
+      PRESET_ENV: "preset",
+      SHARED_ENV: "shared",
+      SERVER_ENV: "server",
+      CLIENT_ENV: "client",
+    };
+
+    interface LazyCreateEnvOptions {
+      presetServer: StandardSchemaDictionary<{ PRESET_ENV: string }>;
+      server: StandardSchemaDictionary<{ SERVER_ENV: string }>;
+      client: StandardSchemaDictionary<{ CLIENT_ENV: string }>;
+      shared: StandardSchemaDictionary<{ SHARED_ENV: string }>;
+    }
+
+    function lazyCreateEnv({ presetServer, ...opts }: LazyCreateEnvOptions) {
+      const preset = createEnv({
+        server: presetServer,
+        runtimeEnv: processEnv,
+      });
+
+      return createEnv({
+        clientPrefix: "CLIENT_",
+        ...opts,
+        extends: [preset],
+        runtimeEnv: processEnv,
+      });
+    }
+
+    return {
+      server: test("server", (opts: LazyCreateEnvOptions) => {
+        const { window } = globalThis;
+        globalThis.window = undefined as any;
+
+        const env = lazyCreateEnv(opts);
+
+        expect(env).toMatchObject({
+          SERVER_ENV: "server",
+          SHARED_ENV: "shared",
+          CLIENT_ENV: "client",
+          PRESET_ENV: "preset",
+        });
+
+        globalThis.window = window;
+      }),
+
+      client: test("client", (opts: LazyCreateEnvOptions) => {
+        const { window } = globalThis;
+        globalThis.window = {} as any;
+        const env = lazyCreateEnv(opts);
+
+        expect(() => env.SERVER_ENV).toThrow(
+          "❌ Attempted to access a server-side environment variable on the client",
+        );
+        expect(() => env.PRESET_ENV).toThrow(
+          "❌ Attempted to access a server-side environment variable on the client",
+        );
+        expect(env.SHARED_ENV).toBe("shared");
+        expect(env.CLIENT_ENV).toBe("client");
+
+        globalThis.window = window;
+      }),
+    };
+  }),
+
+  multiplePresets: describe("multiple presets", () => {
+    const processEnv = {
+      PRESET_ENV1: "preset",
+      PRESET_ENV2: 123,
+      SHARED_ENV: "shared",
+      SERVER_ENV: "server",
+      CLIENT_ENV: "client",
+    };
+
+    interface LazyCreateEnvOptions {
+      presetServer1: StandardSchemaDictionary<{ PRESET_ENV1: "preset" }>;
+      presetServer2: StandardSchemaDictionary<{ PRESET_ENV2: number }>;
+      server: StandardSchemaDictionary<{ SERVER_ENV: string }>;
+      client: StandardSchemaDictionary<{ CLIENT_ENV: string }>;
+      shared: StandardSchemaDictionary<{ SHARED_ENV: string }>;
+    }
+
+    function lazyCreateEnv({
+      presetServer1,
+      presetServer2,
+      ...opts
+    }: LazyCreateEnvOptions) {
+      const preset1 = createEnv({
+        server: presetServer1,
+        runtimeEnv: processEnv,
+      });
+      const preset2 = createEnv({
+        server: presetServer2,
+        runtimeEnv: processEnv,
+      });
+
+      return createEnv({
+        clientPrefix: "CLIENT_",
+        ...opts,
+        extends: [preset1, preset2],
+        runtimeEnv: processEnv,
+      });
+    }
+
+    expectTypeOf(lazyCreateEnv).returns.toEqualTypeOf<
+      Readonly<{
+        PRESET_ENV1: "preset";
+        PRESET_ENV2: number;
+        SERVER_ENV: string;
+        SHARED_ENV: string;
+        CLIENT_ENV: string;
+      }>
+    >();
+
+    return {
+      server: test("server", (opts: LazyCreateEnvOptions) => {
+        const { window } = globalThis;
+        globalThis.window = undefined as any;
+
+        const env = lazyCreateEnv(opts);
+
+        expect(env).toMatchObject({
+          PRESET_ENV1: "preset",
+          PRESET_ENV2: 123,
+          SERVER_ENV: "server",
+          SHARED_ENV: "shared",
+          CLIENT_ENV: "client",
+        });
+
+        globalThis.window = window;
+      }),
+
+      client: test("client", (opts: LazyCreateEnvOptions) => {
+        const { window } = globalThis;
+        globalThis.window = {} as any;
+
+        const env = lazyCreateEnv(opts);
+
+        expect(() => env.SERVER_ENV).toThrow(
+          "❌ Attempted to access a server-side environment variable on the client",
+        );
+        expect(() => env.PRESET_ENV1).toThrow(
+          "❌ Attempted to access a server-side environment variable on the client",
+        );
+        expect(() => env.PRESET_ENV2).toThrow(
+          "❌ Attempted to access a server-side environment variable on the client",
+        );
+        expect(env.SHARED_ENV).toBe("shared");
+        expect(env.CLIENT_ENV).toBe("client");
+
+        globalThis.window = window;
+      }),
+    };
+  }),
 });
 
 export default combine({

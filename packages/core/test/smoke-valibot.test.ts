@@ -185,174 +185,38 @@ runSmokeTests({
         path: ["PRESET_ENV"],
       }),
     },
+    singlePreset: {
+      server: {
+        presetServer: { PRESET_ENV: v.string() },
+        server: { SERVER_ENV: v.string() },
+        client: { CLIENT_ENV: v.string() },
+        shared: { SHARED_ENV: v.string() },
+      },
+      client: {
+        presetServer: { PRESET_ENV: v.string() },
+        server: { SERVER_ENV: v.string() },
+        client: { CLIENT_ENV: v.string() },
+        shared: { SHARED_ENV: v.string() },
+      },
+    },
+
+    multiplePresets: {
+      server: {
+        presetServer1: { PRESET_ENV1: v.picklist(["preset"]) },
+        presetServer2: { PRESET_ENV2: v.number() },
+        server: { SERVER_ENV: v.string() },
+        client: { CLIENT_ENV: v.string() },
+        shared: { SHARED_ENV: v.string() },
+      },
+      client: {
+        presetServer1: { PRESET_ENV1: v.picklist(["preset"]) },
+        presetServer2: { PRESET_ENV2: v.number() },
+        server: { SERVER_ENV: v.string() },
+        client: { CLIENT_ENV: v.string() },
+        shared: { SHARED_ENV: v.string() },
+      },
+    },
   },
-});
-
-describe("extending presets", () => {
-  describe("single preset", () => {
-    const processEnv = {
-      PRESET_ENV: "preset",
-      SHARED_ENV: "shared",
-      SERVER_ENV: "server",
-      CLIENT_ENV: "client",
-    };
-
-    function lazyCreateEnv() {
-      const preset = createEnv({
-        server: {
-          PRESET_ENV: v.picklist(["preset"]),
-        },
-        runtimeEnv: processEnv,
-      });
-
-      return createEnv({
-        server: {
-          SERVER_ENV: v.string(),
-        },
-        shared: {
-          SHARED_ENV: v.string(),
-        },
-        clientPrefix: "CLIENT_",
-        client: {
-          CLIENT_ENV: v.string(),
-        },
-        extends: [preset],
-        runtimeEnv: processEnv,
-      });
-    }
-
-    expectTypeOf(lazyCreateEnv).returns.toEqualTypeOf<
-      Readonly<{
-        SERVER_ENV: string;
-        SHARED_ENV: string;
-        CLIENT_ENV: string;
-        PRESET_ENV: "preset";
-      }>
-    >();
-
-    test("server", () => {
-      const { window } = globalThis;
-      globalThis.window = undefined as any;
-
-      const env = lazyCreateEnv();
-
-      expect(env).toMatchObject({
-        SERVER_ENV: "server",
-        SHARED_ENV: "shared",
-        CLIENT_ENV: "client",
-        PRESET_ENV: "preset",
-      });
-
-      globalThis.window = window;
-    });
-
-    test("client", () => {
-      const { window } = globalThis;
-      globalThis.window = {} as any;
-
-      const env = lazyCreateEnv();
-
-      expect(() => env.SERVER_ENV).toThrow(
-        "❌ Attempted to access a server-side environment variable on the client",
-      );
-      expect(() => env.PRESET_ENV).toThrow(
-        "❌ Attempted to access a server-side environment variable on the client",
-      );
-      expect(env.SHARED_ENV).toBe("shared");
-      expect(env.CLIENT_ENV).toBe("client");
-
-      globalThis.window = window;
-    });
-  });
-
-  describe("multiple presets", () => {
-    const processEnv = {
-      PRESET_ENV1: "preset",
-      PRESET_ENV2: 123,
-      SHARED_ENV: "shared",
-      SERVER_ENV: "server",
-      CLIENT_ENV: "client",
-    };
-
-    function lazyCreateEnv() {
-      const preset1 = createEnv({
-        server: {
-          PRESET_ENV1: v.picklist(["preset"]),
-        },
-        runtimeEnv: processEnv,
-      });
-
-      const preset2 = createEnv({
-        server: {
-          PRESET_ENV2: v.number(),
-        },
-        runtimeEnv: processEnv,
-      });
-
-      return createEnv({
-        server: {
-          SERVER_ENV: v.string(),
-        },
-        shared: {
-          SHARED_ENV: v.string(),
-        },
-        clientPrefix: "CLIENT_",
-        client: {
-          CLIENT_ENV: v.string(),
-        },
-        extends: [preset1, preset2],
-        runtimeEnv: processEnv,
-      });
-    }
-
-    expectTypeOf(lazyCreateEnv).returns.toEqualTypeOf<
-      Readonly<{
-        PRESET_ENV1: "preset";
-        PRESET_ENV2: number;
-        SERVER_ENV: string;
-        SHARED_ENV: string;
-        CLIENT_ENV: string;
-      }>
-    >();
-
-    test("server", () => {
-      const { window } = globalThis;
-      globalThis.window = undefined as any;
-
-      const env = lazyCreateEnv();
-
-      expect(env).toMatchObject({
-        PRESET_ENV1: "preset",
-        PRESET_ENV2: 123,
-        SERVER_ENV: "server",
-        SHARED_ENV: "shared",
-        CLIENT_ENV: "client",
-      });
-
-      globalThis.window = window;
-    });
-
-    test("client", () => {
-      const { window } = globalThis;
-      globalThis.window = {} as any;
-
-      const env = lazyCreateEnv();
-
-      expect(() => env.SERVER_ENV).toThrow(
-        "❌ Attempted to access a server-side environment variable on the client",
-      );
-      expect(() => env.PRESET_ENV1).toThrow(
-        "❌ Attempted to access a server-side environment variable on the client",
-      );
-      expect(() => env.PRESET_ENV2).toThrow(
-        "❌ Attempted to access a server-side environment variable on the client",
-      );
-      expect(env.SHARED_ENV).toBe("shared");
-      expect(env.CLIENT_ENV).toBe("client");
-
-      globalThis.window = window;
-    });
-  });
 });
 
 describe("createFinalSchema", () => {
