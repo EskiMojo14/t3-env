@@ -39,7 +39,7 @@ const combine =
     }
   };
 
-export const returnType = describe("return type is correctly inferred", {
+const returnType = describe("return type is correctly inferred", {
   simple: test("simple", (opts: {
     server: StandardSchemaDictionary.Matching<{ BAR: string }>;
     client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
@@ -115,7 +115,7 @@ export const returnType = describe("return type is correctly inferred", {
   }),
 });
 
-export const numberAndBoolean = test("can pass number and booleans", (opts: {
+const numberAndBoolean = test("can pass number and booleans", (opts: {
   server: StandardSchemaDictionary.Matching<{ PORT: number; IS_DEV: boolean }>;
 }) => {
   const env = createEnv({
@@ -141,7 +141,7 @@ export const numberAndBoolean = test("can pass number and booleans", (opts: {
   });
 });
 
-export const failValidation = describe("errors when validation fails", {
+const failValidation = describe("errors when validation fails", {
   missingEnvs: test("envs are missing", (opts: {
     server: StandardSchemaDictionary.Matching<{ BAR: string }>;
     client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
