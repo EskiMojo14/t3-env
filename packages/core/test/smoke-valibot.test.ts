@@ -4,6 +4,7 @@ import { expectTypeOf } from "expect-type";
 
 import * as v from "valibot";
 import { createEnv } from "../src";
+import * as smokeTests from "./smoke.test";
 
 function ignoreErrors(cb: () => void) {
   try {
@@ -96,75 +97,18 @@ test("runtimeEnvStrict enforces all keys", () => {
   });
 });
 
-describe("return type is correctly inferred", () => {
-  test("simple", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      server: { BAR: v.string() },
-      client: { FOO_BAR: v.string() },
-      runtimeEnvStrict: {
-        BAR: "bar",
-        FOO_BAR: "foo",
-      },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<
-      Readonly<{
-        BAR: string;
-        FOO_BAR: string;
-      }>
-    >();
-
-    expect(env).toMatchObject({
-      BAR: "bar",
-      FOO_BAR: "foo",
-    });
-  });
-
-  test("with transforms", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      server: { BAR: v.pipe(v.string(), v.transform(Number)) },
-      client: { FOO_BAR: v.string() },
-      runtimeEnvStrict: {
-        BAR: "123",
-        FOO_BAR: "foo",
-      },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<
-      Readonly<{
-        BAR: number;
-        FOO_BAR: string;
-      }>
-    >();
-
-    expect(env).toMatchObject({
-      BAR: 123,
-      FOO_BAR: "foo",
-    });
-  });
-
-  test("without client vars", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      server: { BAR: v.string() },
-      client: {},
-      runtimeEnvStrict: {
-        BAR: "bar",
-      },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<
-      Readonly<{
-        BAR: string;
-      }>
-    >();
-
-    expect(env).toMatchObject({
-      BAR: "bar",
-    });
-  });
+smokeTests.returnType({
+  simple: {
+    server: { BAR: v.string() },
+    client: { FOO_BAR: v.string() },
+  },
+  withTransforms: {
+    server: { BAR: v.pipe(v.string(), v.transform(Number), v.number()) },
+    client: { FOO_BAR: v.string() },
+  },
+  withoutClientVars: {
+    server: { BAR: v.string() },
+  },
 });
 
 test("can pass number and booleans", () => {

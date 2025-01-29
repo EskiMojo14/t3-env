@@ -4,6 +4,7 @@ import { expectTypeOf } from "expect-type";
 
 import z from "zod";
 import { createEnv } from "../src";
+import * as smokeTests from "./smoke.test";
 
 function ignoreErrors(cb: () => void) {
   try {
@@ -96,75 +97,18 @@ test("runtimeEnvStrict enforces all keys", () => {
   });
 });
 
-describe("return type is correctly inferred", () => {
-  test("simple", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      server: { BAR: z.string() },
-      client: { FOO_BAR: z.string() },
-      runtimeEnvStrict: {
-        BAR: "bar",
-        FOO_BAR: "foo",
-      },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<
-      Readonly<{
-        BAR: string;
-        FOO_BAR: string;
-      }>
-    >();
-
-    expect(env).toMatchObject({
-      BAR: "bar",
-      FOO_BAR: "foo",
-    });
-  });
-
-  test("with transforms", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      server: { BAR: z.string().transform(Number) },
-      client: { FOO_BAR: z.string() },
-      runtimeEnvStrict: {
-        BAR: "123",
-        FOO_BAR: "foo",
-      },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<
-      Readonly<{
-        BAR: number;
-        FOO_BAR: string;
-      }>
-    >();
-
-    expect(env).toMatchObject({
-      BAR: 123,
-      FOO_BAR: "foo",
-    });
-  });
-
-  test("without client vars", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      server: { BAR: z.string() },
-      client: {},
-      runtimeEnvStrict: {
-        BAR: "bar",
-      },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<
-      Readonly<{
-        BAR: string;
-      }>
-    >();
-
-    expect(env).toMatchObject({
-      BAR: "bar",
-    });
-  });
+smokeTests.returnType({
+  simple: {
+    server: { BAR: z.string() },
+    client: { FOO_BAR: z.string() },
+  },
+  withTransforms: {
+    server: { BAR: z.string().transform(Number) },
+    client: { FOO_BAR: z.string() },
+  },
+  withoutClientVars: {
+    server: { BAR: z.string() },
+  },
 });
 
 test("can pass number and booleans", () => {
