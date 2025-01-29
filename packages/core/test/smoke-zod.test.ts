@@ -131,179 +131,49 @@ runSmokeTests({
       errorMessage: "Expected number, received nan",
     },
   },
-});
 
-describe("errors when server var is accessed on client", () => {
-  test("with default handler", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
+  serverVarsOnClient: {
+    withDefaultHandler: {
       server: { BAR: z.string() },
       client: { FOO_BAR: z.string() },
-      runtimeEnvStrict: {
-        BAR: "bar",
-        FOO_BAR: "foo",
-      },
-      isServer: false,
-    });
-
-    expect(() => env.BAR).toThrow(
-      "❌ Attempted to access a server-side environment variable on the client",
-    );
-  });
-
-  test("with custom handler", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
+    },
+    withCustomHandler: {
       server: { BAR: z.string() },
       client: { FOO_BAR: z.string() },
-      runtimeEnvStrict: {
-        BAR: "bar",
-        FOO_BAR: "foo",
-      },
-      isServer: false,
-      onInvalidAccess: (key) => {
-        throw new Error(`Attempted to access ${key} on the client`);
-      },
-    });
+    },
+  },
 
-    expect(() => env.BAR).toThrow("Attempted to access BAR on the client");
-  });
-});
+  clientOrServerOnly: {
+    clientOnly: {
+      client: { FOO_BAR: z.string() },
+    },
+    serverOnly: {
+      server: { BAR: z.string() },
+    },
+    configWithMissingClient: {},
+    configWithMissingClientPrefix: {},
+  },
 
-describe("client/server only mode", () => {
-  test("client only", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      client: {
-        FOO_BAR: z.string(),
-      },
-      runtimeEnv: { FOO_BAR: "foo" },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<Readonly<{ FOO_BAR: string }>>();
-    expect(env).toMatchObject({ FOO_BAR: "foo" });
-  });
-
-  test("server only", () => {
-    const env = createEnv({
-      server: {
-        BAR: z.string(),
-      },
-      runtimeEnv: { BAR: "bar" },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<Readonly<{ BAR: string }>>();
-    expect(env).toMatchObject({ BAR: "bar" });
-  });
-
-  test("config with missing client", () => {
-    ignoreErrors(() => {
-      createEnv(
-        // @ts-expect-error - incomplete client config - client not present
-        {
-          clientPrefix: "FOO_",
-          server: {},
-          runtimeEnv: {},
-        },
-      );
-    });
-  });
-
-  test("config with missing clientPrefix", () => {
-    ignoreErrors(() => {
-      // @ts-expect-error - incomplete client config - clientPrefix not present
-      createEnv({
-        client: {},
-        server: {},
-        runtimeEnv: {},
-      });
-    });
-  });
-});
-
-describe("shared can be accessed on both server and client", () => {
-  process.env = {
-    NODE_ENV: "development",
-    BAR: "bar",
-    FOO_BAR: "foo",
-  };
-
-  function lazyCreateEnv() {
-    return createEnv({
+  sharedAccessOnClientOrServer: {
+    server: {
       shared: {
         NODE_ENV: z.enum(["development", "production", "test"]),
       },
-      clientPrefix: "FOO_",
       server: { BAR: z.string() },
       client: { FOO_BAR: z.string() },
-      runtimeEnv: process.env,
-    });
-  }
+    },
+    client: {
+      shared: {
+        NODE_ENV: z.enum(["development", "production", "test"]),
+      },
+      server: { BAR: z.string() },
+      client: { FOO_BAR: z.string() },
+    },
+  },
 
-  expectTypeOf(lazyCreateEnv).returns.toEqualTypeOf<
-    Readonly<{
-      NODE_ENV: "development" | "production" | "test";
-      BAR: string;
-      FOO_BAR: string;
-    }>
-  >();
-
-  test("server", () => {
-    const { window } = globalThis;
-
-    globalThis.window = undefined as any;
-
-    const env = lazyCreateEnv();
-
-    expect(env).toMatchObject({
-      NODE_ENV: "development",
-      BAR: "bar",
-      FOO_BAR: "foo",
-    });
-
-    globalThis.window = window;
-  });
-
-  test("client", () => {
-    const { window } = globalThis;
-
-    globalThis.window = {} as any;
-
-    const env = lazyCreateEnv();
-
-    expect(() => env.BAR).toThrow(
-      "❌ Attempted to access a server-side environment variable on the client",
-    );
-    expect(env.FOO_BAR).toBe("foo");
-    expect(env.NODE_ENV).toBe("development");
-
-    globalThis.window = window;
-  });
-});
-
-test("envs are readonly", () => {
-  const env = createEnv({
+  readonlyEnvs: {
     server: { BAR: z.string() },
-    runtimeEnv: { BAR: "bar" },
-  });
-
-  /**
-   * We currently don't enforce readonly during runtime:
-   * https://github.com/t3-oss/t3-env/pull/111#issuecomment-1682931526
-   */
-
-  // expect(() => {
-  //   // @ts-expect-error - envs are readonly
-  //   env.BAR = "foo";
-  // }).toThrow(
-  //   '"Cannot assign to read only property BAR of object #<Object>"'
-  // );
-
-  // expect(env).toMatchObject({ BAR: "bar" });
-
-  // @ts-expect-error - envs are readonly
-  env.BAR = "foo";
-  expect(env).toMatchObject({ BAR: "foo" });
+  },
 });
 
 describe("extending presets", () => {

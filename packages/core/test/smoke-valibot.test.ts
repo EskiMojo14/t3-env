@@ -131,228 +131,49 @@ runSmokeTests({
       errorMessage: "Invalid type: Expected number but received NaN",
     },
   },
-});
 
-describe("errors when validation fails", () => {
-  test("envs are missing", () => {
-    expect(() =>
-      createEnv({
-        clientPrefix: "FOO_",
-        server: { BAR: v.string() },
-        client: { FOO_BAR: v.string() },
-        runtimeEnv: {},
-      }),
-    ).toThrow("Invalid environment variables");
-  });
-
-  test("envs are invalid", () => {
-    expect(() =>
-      createEnv({
-        clientPrefix: "FOO_",
-        server: { BAR: v.pipe(v.string(), v.transform(Number), v.number()) },
-        client: { FOO_BAR: v.string() },
-        runtimeEnv: {
-          BAR: "123abc",
-          FOO_BAR: "foo",
-        },
-      }),
-    ).toThrow("Invalid environment variables");
-  });
-
-  test("with custom error handler", () => {
-    expect(() =>
-      createEnv({
-        clientPrefix: "FOO_",
-        server: { BAR: v.pipe(v.string(), v.transform(Number), v.number()) },
-        client: { FOO_BAR: v.string() },
-        runtimeEnv: {
-          BAR: "123abc",
-          FOO_BAR: "foo",
-        },
-        onValidationError: (issues) => {
-          const barError = issues.find(
-            (issue) => issue.path?.[0] === "BAR",
-          )?.message;
-          throw new Error(`Invalid variable BAR: ${barError}`);
-        },
-      }),
-    ).toThrow(
-      "Invalid variable BAR: Invalid type: Expected number but received NaN",
-    );
-  });
-});
-
-describe("errors when server var is accessed on client", () => {
-  test("with default handler", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
+  serverVarsOnClient: {
+    withDefaultHandler: {
       server: { BAR: v.string() },
       client: { FOO_BAR: v.string() },
-      runtimeEnvStrict: {
-        BAR: "bar",
-        FOO_BAR: "foo",
-      },
-      isServer: false,
-    });
-
-    expect(() => env.BAR).toThrow(
-      "❌ Attempted to access a server-side environment variable on the client",
-    );
-  });
-
-  test("with custom handler", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
+    },
+    withCustomHandler: {
       server: { BAR: v.string() },
       client: { FOO_BAR: v.string() },
-      runtimeEnvStrict: {
-        BAR: "bar",
-        FOO_BAR: "foo",
-      },
-      isServer: false,
-      onInvalidAccess: (key) => {
-        throw new Error(`Attempted to access ${key} on the client`);
-      },
-    });
+    },
+  },
 
-    expect(() => env.BAR).toThrow("Attempted to access BAR on the client");
-  });
-});
+  clientOrServerOnly: {
+    clientOnly: {
+      client: { FOO_BAR: v.string() },
+    },
+    serverOnly: {
+      server: { BAR: v.string() },
+    },
+    configWithMissingClient: {},
+    configWithMissingClientPrefix: {},
+  },
 
-describe("client/server only mode", () => {
-  test("client only", () => {
-    const env = createEnv({
-      clientPrefix: "FOO_",
-      client: {
-        FOO_BAR: v.string(),
-      },
-      runtimeEnv: { FOO_BAR: "foo" },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<Readonly<{ FOO_BAR: string }>>();
-    expect(env).toMatchObject({ FOO_BAR: "foo" });
-  });
-
-  test("server only", () => {
-    const env = createEnv({
-      server: {
-        BAR: v.string(),
-      },
-      runtimeEnv: { BAR: "bar" },
-    });
-
-    expectTypeOf(env).toEqualTypeOf<Readonly<{ BAR: string }>>();
-    expect(env).toMatchObject({ BAR: "bar" });
-  });
-
-  test("config with missing client", () => {
-    ignoreErrors(() => {
-      createEnv(
-        // @ts-expect-error - incomplete client config - client not present
-        {
-          clientPrefix: "FOO_",
-          server: {},
-          runtimeEnv: {},
-        },
-      );
-    });
-  });
-
-  test("config with missing clientPrefix", () => {
-    ignoreErrors(() => {
-      // @ts-expect-error - incomplete client config - clientPrefix not present
-      createEnv({
-        client: {},
-        server: {},
-        runtimeEnv: {},
-      });
-    });
-  });
-});
-
-describe("shared can be accessed on both server and client", () => {
-  process.env = {
-    NODE_ENV: "development",
-    BAR: "bar",
-    FOO_BAR: "foo",
-  };
-
-  function lazyCreateEnv() {
-    return createEnv({
+  sharedAccessOnClientOrServer: {
+    server: {
       shared: {
         NODE_ENV: v.picklist(["development", "production", "test"]),
       },
-      clientPrefix: "FOO_",
       server: { BAR: v.string() },
       client: { FOO_BAR: v.string() },
-      runtimeEnv: process.env,
-    });
-  }
+    },
+    client: {
+      shared: {
+        NODE_ENV: v.picklist(["development", "production", "test"]),
+      },
+      server: { BAR: v.string() },
+      client: { FOO_BAR: v.string() },
+    },
+  },
 
-  expectTypeOf(lazyCreateEnv).returns.toEqualTypeOf<
-    Readonly<{
-      NODE_ENV: "development" | "production" | "test";
-      BAR: string;
-      FOO_BAR: string;
-    }>
-  >();
-
-  test("server", () => {
-    const { window } = globalThis;
-
-    globalThis.window = undefined as any;
-
-    const env = lazyCreateEnv();
-
-    expect(env).toMatchObject({
-      NODE_ENV: "development",
-      BAR: "bar",
-      FOO_BAR: "foo",
-    });
-
-    globalThis.window = window;
-  });
-
-  test("client", () => {
-    const { window } = globalThis;
-
-    globalThis.window = {} as any;
-
-    const env = lazyCreateEnv();
-
-    expect(() => env.BAR).toThrow(
-      "❌ Attempted to access a server-side environment variable on the client",
-    );
-    expect(env.FOO_BAR).toBe("foo");
-    expect(env.NODE_ENV).toBe("development");
-
-    globalThis.window = window;
-  });
-});
-
-test("envs are readonly", () => {
-  const env = createEnv({
+  readonlyEnvs: {
     server: { BAR: v.string() },
-    runtimeEnv: { BAR: "bar" },
-  });
-
-  /**
-   * We currently don't enforce readonly during runtime:
-   * https://github.com/t3-oss/t3-env/pull/111#issuecomment-1682931526
-   */
-
-  // expect(() => {
-  //   // @ts-expect-error - envs are readonly
-  //   env.BAR = "foo";
-  // }).toThrow(
-  //   '"Cannot assign to read only property BAR of object #<Object>"'
-  // );
-
-  // expect(env).toMatchObject({ BAR: "bar" });
-
-  // @ts-expect-error - envs are readonly
-  env.BAR = "foo";
-  expect(env).toMatchObject({ BAR: "foo" });
+  },
 });
 
 describe("extending presets", () => {
