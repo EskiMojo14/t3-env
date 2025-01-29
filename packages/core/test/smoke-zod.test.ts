@@ -174,56 +174,21 @@ runSmokeTests({
   readonlyEnvs: {
     server: { BAR: z.string() },
   },
+
+  extendingPresets: {
+    withInvalidRuntimeEnvs: {
+      presetServer: { PRESET_ENV: z.string() },
+      server: { SERVER_ENV: z.string() },
+      client: { CLIENT_ENV: z.string() },
+      expectedIssue: expect.objectContaining({
+        message: expect.any(String),
+        path: ["PRESET_ENV"],
+      }),
+    },
+  },
 });
 
 describe("extending presets", () => {
-  test("with invalid runtime envs", () => {
-    const processEnv = {
-      SERVER_ENV: "server",
-      CLIENT_ENV: "client",
-    };
-
-    function lazyCreateEnv() {
-      const preset = createEnv({
-        server: {
-          PRESET_ENV: z.string(),
-        },
-        runtimeEnv: processEnv,
-      });
-
-      return createEnv({
-        server: {
-          SERVER_ENV: z.string(),
-        },
-        clientPrefix: "CLIENT_",
-        client: {
-          CLIENT_ENV: z.string(),
-        },
-        extends: [preset],
-        runtimeEnv: processEnv,
-      });
-    }
-
-    expectTypeOf(lazyCreateEnv).returns.toEqualTypeOf<
-      Readonly<{
-        SERVER_ENV: string;
-        CLIENT_ENV: string;
-        PRESET_ENV: string;
-      }>
-    >();
-
-    const consoleError = spyOn(console, "error");
-    expect(() => lazyCreateEnv()).toThrow("Invalid environment variables");
-    expect(consoleError.mock.calls[0]).toEqual([
-      "❌ Invalid environment variables:",
-      [
-        expect.objectContaining({
-          message: expect.any(String),
-          path: ["PRESET_ENV"],
-        }),
-      ],
-    ]);
-  });
   describe("single preset", () => {
     const processEnv = {
       PRESET_ENV: "preset",

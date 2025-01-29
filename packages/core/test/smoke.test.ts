@@ -1,52 +1,8 @@
-import type { TestOptions } from "bun:test";
-import { describe as bunDescribe, test as bunTest, expect } from "bun:test";
+import { expect, spyOn } from "bun:test";
 import { expectTypeOf } from "expect-type";
-import type { StandardSchemaDictionary } from "../src";
+import type { StandardSchemaDictionary, StandardSchemaV1 } from "../src";
 import { createEnv } from "../src";
-
-function ignoreErrors(cb: () => void) {
-  try {
-    cb();
-  } catch (err) {
-    // ignore
-  }
-}
-
-type TestFunction<Opts> = (opts: Opts) => void | Promise<void>;
-type TestMap<OptsMap> = {
-  [Name in keyof OptsMap]: TestFunction<OptsMap[Name]>;
-};
-
-const test =
-  <Opts>(
-    name: string,
-    cb: TestFunction<Opts>,
-    testOptions?: number | TestOptions,
-  ) =>
-  (opts: Opts) =>
-    bunTest(name, () => cb(opts), testOptions);
-
-const describe =
-  <OptMap extends Record<string, unknown>>(
-    groupName: string,
-    tests: TestMap<OptMap> | (() => TestMap<OptMap>),
-  ) =>
-  (optsMap: OptMap) => {
-    bunDescribe(groupName, () => {
-      const testMap = typeof tests === "function" ? tests() : tests;
-      for (const [name, test] of Object.entries<TestFunction<any>>(testMap)) {
-        test(optsMap[name]);
-      }
-    });
-  };
-
-const combine =
-  <OptMap extends Record<string, unknown>>(tests: TestMap<OptMap>) =>
-  (optsMap: OptMap) => {
-    for (const [name, test] of Object.entries(tests)) {
-      test(optsMap[name]);
-    }
-  };
+import { combine, describe, ignoreErrors, test } from "./utils";
 
 const returnType = describe("return type is correctly inferred", {
   simple: test("simple", (opts: {
@@ -403,6 +359,56 @@ const readonlyEnvs = test("envs are readonly", (opts: {
   expect(env).toMatchObject({ BAR: "foo" });
 });
 
+const extendingPresets = describe("extending presets", {
+  withInvalidRuntimeEnvs: test("with invalid runtime envs", ({
+    presetServer,
+    expectedIssue,
+    ...opts
+  }: {
+    presetServer: StandardSchemaDictionary<{ PRESET_ENV: string }>;
+    server: StandardSchemaDictionary<{ SERVER_ENV: string }>;
+    client: StandardSchemaDictionary<{ CLIENT_ENV: string }>;
+    expectedIssue: StandardSchemaV1.Issue;
+  }) => {
+    const processEnv = {
+      SERVER_ENV: "server",
+      CLIENT_ENV: "client",
+    };
+
+    function lazyCreateEnv() {
+      const preset = createEnv({
+        server: presetServer,
+        runtimeEnv: processEnv,
+      });
+
+      return createEnv({
+        clientPrefix: "CLIENT_",
+        ...opts,
+        extends: [preset],
+        runtimeEnv: processEnv,
+      });
+    }
+    expectTypeOf(lazyCreateEnv).returns.toEqualTypeOf<
+      Readonly<{
+        SERVER_ENV: string;
+        CLIENT_ENV: string;
+        PRESET_ENV: string;
+      }>
+    >();
+
+    const consoleError = spyOn(console, "error");
+
+    expect(() => lazyCreateEnv()).toThrow("Invalid environment variables");
+    expect(consoleError).toHaveBeenNthCalledWith(
+      1,
+      "❌ Invalid environment variables:",
+      [expectedIssue],
+    );
+
+    consoleError.mockRestore();
+  }),
+});
+
 export default combine({
   returnType,
   numberAndBoolean,
@@ -411,4 +417,5 @@ export default combine({
   clientOrServerOnly,
   sharedAccessOnClientOrServer,
   readonlyEnvs,
+  extendingPresets,
 });
