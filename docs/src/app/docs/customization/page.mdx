@@ -23,12 +23,10 @@ export const env = createEnv({
   // ...
   // Tell the library to skip validation if condition is true.
   skipValidation: false,
-  // return the env shape, when skipping validation.
-  getUnvalidatedEnv: (env, schema) => env
 });
 ```
 
-For type safety, you're required to provide a `getUnvalidatedEnv` callback if using `skipValidation`. This provides the opportunity to extract defaults from your schema, or to apply any necessary transformations the schema would normally be in charge of.
+For better type safety, you're able to provide a `getUnvalidatedEnv` callback. This provides the opportunity to extract defaults from your schema, or to apply any necessary transformations the schema would normally be in charge of.
 
 ```ts title="src/env.ts"
 import { createEnv } from "@t3-oss/env-core";

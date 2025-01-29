@@ -3,7 +3,6 @@ import type {
   DefaultCombinedSchema,
   FinalSchemaOptions,
   ServerClientOptions,
-  SkipValidationOptions,
   StandardSchemaDictionary,
   StandardSchemaV1,
   StrictOptions,
@@ -22,8 +21,7 @@ type Options<
 > = Omit<
   StrictOptions<ClientPrefix, TServer, TClient, TShared, TExtends> &
     ServerClientOptions<ClientPrefix, TServer, TClient> &
-    FinalSchemaOptions<TServer, TClient, TShared, TFinalSchema> &
-    SkipValidationOptions<TFinalSchema>,
+    FinalSchemaOptions<TServer, TClient, TShared, TFinalSchema>,
   "runtimeEnvStrict" | "runtimeEnv" | "clientPrefix"
 >;
 
