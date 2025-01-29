@@ -4,10 +4,15 @@ import { expectTypeOf } from "expect-type";
 import type { StandardSchemaDictionary } from "../src";
 import { createEnv } from "../src";
 
+type TestFunction<Opts> = (opts: Opts) => void | Promise<void>;
+type TestMap<OptsMap> = {
+  [Name in keyof OptsMap]: TestFunction<OptsMap[Name]>;
+};
+
 const test =
   <Opts>(
     name: string,
-    cb: (opts: Opts) => void | Promise<void>,
+    cb: TestFunction<Opts>,
     testOptions?: number | TestOptions,
   ) =>
   (opts: Opts) =>
@@ -16,9 +21,7 @@ const test =
 const describe =
   <OptMap extends Record<string, unknown>>(
     groupName: string,
-    tests: {
-      [Name in keyof OptMap]: (opts: OptMap[Name]) => void;
-    },
+    tests: TestMap<OptMap>,
   ) =>
   (optsMap: OptMap) => {
     bunDescribe(groupName, () => {
@@ -26,6 +29,14 @@ const describe =
         test(optsMap[name]);
       }
     });
+  };
+
+const combine =
+  <OptMap extends Record<string, unknown>>(tests: TestMap<OptMap>) =>
+  (optsMap: OptMap) => {
+    for (const [name, test] of Object.entries(tests)) {
+      test(optsMap[name]);
+    }
   };
 
 export const returnType = describe("return type is correctly inferred", {
@@ -187,7 +198,7 @@ export const failValidation = describe("errors when validation fails", {
   }),
 });
 
-export default describe("reusable smoke tests", {
+export default combine({
   returnType,
   numberAndBoolean,
   failValidation,
