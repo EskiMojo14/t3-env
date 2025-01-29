@@ -4,7 +4,7 @@ import { expectTypeOf } from "expect-type";
 
 import * as v from "valibot";
 import { createEnv } from "../src";
-import * as smokeTests from "./smoke.test";
+import runSmokeTests from "./smoke.test";
 
 function ignoreErrors(cb: () => void) {
   try {
@@ -97,45 +97,40 @@ test("runtimeEnvStrict enforces all keys", () => {
   });
 });
 
-smokeTests.returnType({
-  simple: {
-    server: { BAR: v.string() },
-    client: { FOO_BAR: v.string() },
-  },
-  withTransforms: {
-    server: { BAR: v.pipe(v.string(), v.transform(Number), v.number()) },
-    client: { FOO_BAR: v.string() },
-  },
-  withoutClientVars: {
-    server: { BAR: v.string() },
-  },
-});
-
-test("can pass number and booleans", () => {
-  const env = createEnv({
-    clientPrefix: "FOO_",
-    server: {
-      PORT: v.number(),
-      IS_DEV: v.boolean(),
+runSmokeTests({
+  returnType: {
+    simple: {
+      server: { BAR: v.string() },
+      client: { FOO_BAR: v.string() },
     },
-    client: {},
-    runtimeEnvStrict: {
-      PORT: 123,
-      IS_DEV: true,
+    withTransforms: {
+      server: { BAR: v.pipe(v.string(), v.transform(Number), v.number()) },
+      client: { FOO_BAR: v.string() },
     },
-  });
+    withoutClientVars: {
+      server: { BAR: v.string() },
+    },
+  },
 
-  expectTypeOf(env).toEqualTypeOf<
-    Readonly<{
-      PORT: number;
-      IS_DEV: boolean;
-    }>
-  >();
+  numberAndBoolean: {
+    server: { PORT: v.number(), IS_DEV: v.boolean() },
+  },
 
-  expect(env).toMatchObject({
-    PORT: 123,
-    IS_DEV: true,
-  });
+  failValidation: {
+    missingEnvs: {
+      server: { BAR: v.string() },
+      client: { FOO_BAR: v.string() },
+    },
+    invalidEnvs: {
+      server: { BAR: v.pipe(v.string(), v.transform(Number), v.number()) },
+      client: { FOO_BAR: v.string() },
+    },
+    customErrorHandler: {
+      server: { BAR: v.pipe(v.string(), v.transform(Number), v.number()) },
+      client: { FOO_BAR: v.string() },
+      errorMessage: "Invalid type: Expected number but received NaN",
+    },
+  },
 });
 
 describe("errors when validation fails", () => {

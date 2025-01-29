@@ -103,3 +103,92 @@ export const returnType = describe("return type is correctly inferred", {
     });
   }),
 });
+
+export const numberAndBoolean = test("can pass number and booleans", (opts: {
+  server: StandardSchemaDictionary.Matching<{ PORT: number; IS_DEV: boolean }>;
+}) => {
+  const env = createEnv({
+    clientPrefix: "FOO_",
+    ...opts,
+    client: {},
+    runtimeEnvStrict: {
+      PORT: 123,
+      IS_DEV: true,
+    },
+  });
+
+  expectTypeOf(env).toEqualTypeOf<
+    Readonly<{
+      PORT: number;
+      IS_DEV: boolean;
+    }>
+  >();
+
+  expect(env).toMatchObject({
+    PORT: 123,
+    IS_DEV: true,
+  });
+});
+
+export const failValidation = describe("errors when validation fails", {
+  missingEnvs: test("envs are missing", (opts: {
+    server: StandardSchemaDictionary.Matching<{ BAR: string }>;
+    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+  }) => {
+    expect(() =>
+      createEnv({
+        clientPrefix: "FOO_",
+        ...opts,
+        runtimeEnv: {},
+      }),
+    ).toThrow("Invalid environment variables");
+  }),
+
+  invalidEnvs: test("envs are invalid", (opts: {
+    server: StandardSchemaDictionary.Matching<{ BAR: string }, { BAR: number }>;
+    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+  }) => {
+    expect(() =>
+      createEnv({
+        clientPrefix: "FOO_",
+        ...opts,
+        runtimeEnv: {
+          BAR: "123abc",
+          FOO_BAR: "foo",
+        },
+      }),
+    ).toThrow("Invalid environment variables");
+  }),
+
+  customErrorHandler: test("with custom error handler", ({
+    errorMessage,
+    ...opts
+  }: {
+    server: StandardSchemaDictionary.Matching<{ BAR: string }, { BAR: number }>;
+    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+    errorMessage: string;
+  }) => {
+    expect(() =>
+      createEnv({
+        clientPrefix: "FOO_",
+        ...opts,
+        runtimeEnv: {
+          BAR: "123abc",
+          FOO_BAR: "foo",
+        },
+        onValidationError: (issues) => {
+          const barError = issues.find(
+            (issue) => issue.path?.[0] === "BAR",
+          )?.message;
+          throw new Error(`Invalid variable BAR: ${barError}`);
+        },
+      }),
+    ).toThrow(`Invalid variable BAR: ${errorMessage}`);
+  }),
+});
+
+export default describe("reusable smoke tests", {
+  returnType,
+  numberAndBoolean,
+  failValidation,
+});

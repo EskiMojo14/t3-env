@@ -4,7 +4,7 @@ import { expectTypeOf } from "expect-type";
 
 import z from "zod";
 import { createEnv } from "../src";
-import * as smokeTests from "./smoke.test";
+import runSmokeTests from "./smoke.test";
 
 function ignoreErrors(cb: () => void) {
   try {
@@ -97,92 +97,40 @@ test("runtimeEnvStrict enforces all keys", () => {
   });
 });
 
-smokeTests.returnType({
-  simple: {
-    server: { BAR: z.string() },
-    client: { FOO_BAR: z.string() },
-  },
-  withTransforms: {
-    server: { BAR: z.string().transform(Number) },
-    client: { FOO_BAR: z.string() },
-  },
-  withoutClientVars: {
-    server: { BAR: z.string() },
-  },
-});
-
-test("can pass number and booleans", () => {
-  const env = createEnv({
-    clientPrefix: "FOO_",
-    server: {
-      PORT: z.number(),
-      IS_DEV: z.boolean(),
+runSmokeTests({
+  returnType: {
+    simple: {
+      server: { BAR: z.string() },
+      client: { FOO_BAR: z.string() },
     },
-    client: {},
-    runtimeEnvStrict: {
-      PORT: 123,
-      IS_DEV: true,
+    withTransforms: {
+      server: { BAR: z.string().transform(Number) },
+      client: { FOO_BAR: z.string() },
     },
-  });
+    withoutClientVars: {
+      server: { BAR: z.string() },
+    },
+  },
 
-  expectTypeOf(env).toEqualTypeOf<
-    Readonly<{
-      PORT: number;
-      IS_DEV: boolean;
-    }>
-  >();
+  numberAndBoolean: {
+    server: { PORT: z.number(), IS_DEV: z.boolean() },
+  },
 
-  expect(env).toMatchObject({
-    PORT: 123,
-    IS_DEV: true,
-  });
-});
-
-describe("errors when validation fails", () => {
-  test("envs are missing", () => {
-    expect(() =>
-      createEnv({
-        clientPrefix: "FOO_",
-        server: { BAR: z.string() },
-        client: { FOO_BAR: z.string() },
-        runtimeEnv: {},
-      }),
-    ).toThrow("Invalid environment variables");
-  });
-
-  test("envs are invalid", () => {
-    expect(() =>
-      createEnv({
-        clientPrefix: "FOO_",
-        server: { BAR: z.string().transform(Number).pipe(z.number()) },
-        client: { FOO_BAR: z.string() },
-        runtimeEnv: {
-          BAR: "123abc",
-          FOO_BAR: "foo",
-        },
-      }),
-    ).toThrow("Invalid environment variables");
-  });
-
-  test("with custom error handler", () => {
-    expect(() =>
-      createEnv({
-        clientPrefix: "FOO_",
-        server: { BAR: z.string().transform(Number).pipe(z.number()) },
-        client: { FOO_BAR: z.string() },
-        runtimeEnv: {
-          BAR: "123abc",
-          FOO_BAR: "foo",
-        },
-        onValidationError: (issues) => {
-          const barError = issues.find(
-            (issue) => issue.path?.[0] === "BAR",
-          )?.message;
-          throw new Error(`Invalid variable BAR: ${barError}`);
-        },
-      }),
-    ).toThrow("Invalid variable BAR: Expected number, received nan");
-  });
+  failValidation: {
+    missingEnvs: {
+      server: { BAR: z.string() },
+      client: { FOO_BAR: z.string() },
+    },
+    invalidEnvs: {
+      server: { BAR: z.string().transform(Number).pipe(z.number()) },
+      client: { FOO_BAR: z.string() },
+    },
+    customErrorHandler: {
+      server: { BAR: z.string().transform(Number).pipe(z.number()) },
+      client: { FOO_BAR: z.string() },
+      errorMessage: "Expected number, received nan",
+    },
+  },
 });
 
 describe("errors when server var is accessed on client", () => {
