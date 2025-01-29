@@ -448,13 +448,11 @@ const readonlyEnvs = test("envs are readonly", (opts: {
 const extendingPresets = describe("extending presets", {
   withInvalidRuntimeEnvs: test("with invalid runtime envs", ({
     presetServer,
-    expectedIssue,
     ...opts
   }: {
     presetServer: StandardSchemaDictionary<{ PRESET_ENV: string }>;
     server: StandardSchemaDictionary<{ SERVER_ENV: string }>;
     client: StandardSchemaDictionary<{ CLIENT_ENV: string }>;
-    expectedIssue: StandardSchemaV1.Issue;
   }) => {
     const processEnv = {
       SERVER_ENV: "server",
@@ -488,7 +486,12 @@ const extendingPresets = describe("extending presets", {
     expect(consoleError).toHaveBeenNthCalledWith(
       1,
       "❌ Invalid environment variables:",
-      [expectedIssue],
+      [
+        expect.objectContaining({
+          message: expect.any(String),
+          path: ["PRESET_ENV"],
+        } satisfies StandardSchemaV1.Issue),
+      ],
     );
 
     consoleError.mockRestore();

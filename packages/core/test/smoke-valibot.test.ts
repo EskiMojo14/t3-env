@@ -89,10 +89,6 @@ runSmokeTests({
       presetServer: { PRESET_ENV: v.string() },
       server: { SERVER_ENV: v.string() },
       client: { CLIENT_ENV: v.string() },
-      expectedIssue: expect.objectContaining({
-        message: expect.any(String),
-        path: ["PRESET_ENV"],
-      }),
     },
     singlePreset: {
       server: {
