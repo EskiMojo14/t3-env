@@ -23,6 +23,16 @@ export const test =
   (opts: Opts) =>
     bunTest(name, () => cb(opts), testOptions);
 
+function runTestMap<OptMap extends Record<string, unknown>>(
+  tests: TestMap<OptMap>,
+  optsMap: OptMap,
+) {
+  // biome-ignore lint/suspicious/noExplicitAny: needs to be any, is contravariant
+  for (const [name, test] of Object.entries<TestFunction<any>>(tests)) {
+    test(optsMap[name]);
+  }
+}
+
 export const describe =
   <OptMap extends Record<string, unknown>>(
     groupName: string,
@@ -30,18 +40,11 @@ export const describe =
   ) =>
   (optsMap: OptMap) => {
     bunDescribe(groupName, () => {
-      const testMap = typeof tests === "function" ? tests() : tests;
-      // biome-ignore lint/suspicious/noExplicitAny: needs to be any, is contravariant
-      for (const [name, test] of Object.entries<TestFunction<any>>(testMap)) {
-        test(optsMap[name]);
-      }
+      runTestMap(typeof tests === "function" ? tests() : tests, optsMap);
     });
   };
 
 export const combine =
   <OptMap extends Record<string, unknown>>(tests: TestMap<OptMap>) =>
-  (optsMap: OptMap) => {
-    for (const [name, test] of Object.entries(tests)) {
-      test(optsMap[name]);
-    }
-  };
+  (optsMap: OptMap) =>
+    runTestMap(tests, optsMap);
