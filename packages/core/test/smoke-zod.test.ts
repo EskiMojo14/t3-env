@@ -1,101 +1,10 @@
 /// <reference types="bun" />
-import { describe, expect, spyOn, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { expectTypeOf } from "expect-type";
 
 import z from "zod";
 import { createEnv } from "../src";
 import runSmokeTests from "./smoke.test";
-
-function ignoreErrors(cb: () => void) {
-  try {
-    cb();
-  } catch (err) {
-    // ignore
-  }
-}
-
-test("server vars should not be prefixed", () => {
-  ignoreErrors(() => {
-    createEnv({
-      clientPrefix: "FOO_",
-      server: {
-        // @ts-expect-error - server should not have FOO_ prefix
-        FOO_BAR: z.string(),
-        BAR: z.string(),
-      },
-      client: {},
-      runtimeEnv: {},
-    });
-  });
-});
-
-test("client vars should be correctly prefixed", () => {
-  ignoreErrors(() => {
-    createEnv({
-      clientPrefix: "FOO_",
-      server: {},
-      client: {
-        FOO_BAR: z.string(),
-        // @ts-expect-error - no FOO_ prefix
-        BAR: z.string(),
-      },
-      runtimeEnv: {},
-    });
-  });
-});
-
-test("runtimeEnvStrict enforces all keys", () => {
-  createEnv({
-    clientPrefix: "FOO_",
-    server: {},
-    client: {},
-    runtimeEnvStrict: {},
-  });
-
-  createEnv({
-    clientPrefix: "FOO_",
-    server: {},
-    client: { FOO_BAR: z.string() },
-    runtimeEnvStrict: { FOO_BAR: "foo" },
-  });
-
-  createEnv({
-    clientPrefix: "FOO_",
-    server: { BAR: z.string() },
-    client: {},
-    runtimeEnvStrict: { BAR: "foo" },
-  });
-
-  createEnv({
-    clientPrefix: "FOO_",
-    server: { BAR: z.string() },
-    client: { FOO_BAR: z.string() },
-    runtimeEnvStrict: { BAR: "foo", FOO_BAR: "foo" },
-  });
-
-  createEnv({
-    clientPrefix: "FOO_",
-    server: {},
-    client: { FOO_BAR: z.string() },
-    runtimeEnvStrict: {
-      FOO_BAR: "foo",
-      // @ts-expect-error - FOO_BAZ is extraneous
-      FOO_BAZ: "baz",
-    },
-  });
-
-  ignoreErrors(() => {
-    createEnv({
-      clientPrefix: "FOO_",
-      server: { BAR: z.string() },
-      client: { FOO_BAR: z.string() },
-      // @ts-expect-error - BAR is missing
-      runtimeEnvStrict: {
-        FOO_BAR: "foo",
-      },
-    });
-  });
-});
 
 runSmokeTests({
   returnType: {

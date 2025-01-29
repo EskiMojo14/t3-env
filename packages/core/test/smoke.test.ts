@@ -1,8 +1,94 @@
-import { expect, spyOn } from "bun:test";
+import {
+  describe as bunDescribe,
+  test as bunTest,
+  expect,
+  spyOn,
+} from "bun:test";
 import { expectTypeOf } from "expect-type";
 import type { StandardSchemaDictionary, StandardSchemaV1 } from "../src";
 import { createEnv } from "../src";
 import { combine, describe, ignoreErrors, test } from "./utils";
+
+bunDescribe.skip("type only tests", () => {
+  const stringSchema: StandardSchemaV1<string> = null as never;
+
+  bunTest("server vars should not be prefixed", () => {
+    createEnv({
+      clientPrefix: "FOO_",
+      server: {
+        // @ts-expect-error - server should not have FOO_ prefix
+        FOO_BAR: stringSchema,
+        BAR: stringSchema,
+      },
+      client: {},
+      runtimeEnv: {},
+    });
+  });
+
+  bunTest("client vars should be correctly prefixed", () => {
+    createEnv({
+      clientPrefix: "FOO_",
+      server: {},
+      client: {
+        FOO_BAR: stringSchema,
+        // @ts-expect-error - no FOO_ prefix
+        BAR: stringSchema,
+      },
+      runtimeEnv: {},
+    });
+  });
+
+  bunTest("runtimeEnvStrict enforces all keys", () => {
+    createEnv({
+      clientPrefix: "FOO_",
+      server: {},
+      client: {},
+      runtimeEnvStrict: {},
+    });
+
+    createEnv({
+      clientPrefix: "FOO_",
+      server: {},
+      client: { FOO_BAR: stringSchema },
+      runtimeEnvStrict: { FOO_BAR: "foo" },
+    });
+
+    createEnv({
+      clientPrefix: "FOO_",
+      server: { BAR: stringSchema },
+      client: {},
+      runtimeEnvStrict: { BAR: "foo" },
+    });
+
+    createEnv({
+      clientPrefix: "FOO_",
+      server: { BAR: stringSchema },
+      client: { FOO_BAR: stringSchema },
+      runtimeEnvStrict: { BAR: "foo", FOO_BAR: "foo" },
+    });
+
+    createEnv({
+      clientPrefix: "FOO_",
+      server: {},
+      client: { FOO_BAR: stringSchema },
+      runtimeEnvStrict: {
+        FOO_BAR: "foo",
+        // @ts-expect-error - FOO_BAZ is extraneous
+        FOO_BAZ: "baz",
+      },
+    });
+
+    createEnv({
+      clientPrefix: "FOO_",
+      server: { BAR: stringSchema },
+      client: { FOO_BAR: stringSchema },
+      // @ts-expect-error - BAR is missing
+      runtimeEnvStrict: {
+        FOO_BAR: "foo",
+      },
+    });
+  });
+});
 
 const returnType = describe("return type is correctly inferred", {
   simple: test("simple", (opts: {
