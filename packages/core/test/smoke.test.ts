@@ -7,7 +7,7 @@ import { createEnv } from "../src";
 const test =
   <Opts>(
     name: string,
-    cb: (opts: Opts) => void,
+    cb: (opts: Opts) => void | Promise<void>,
     testOptions?: number | TestOptions,
   ) =>
   (opts: Opts) =>
