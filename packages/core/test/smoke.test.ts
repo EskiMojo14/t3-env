@@ -50,8 +50,8 @@ const combine =
 
 const returnType = describe("return type is correctly inferred", {
   simple: test("simple", (opts: {
-    server: StandardSchemaDictionary.Matching<{ BAR: string }>;
-    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
   }) => {
     const env = createEnv({
       clientPrefix: "FOO_",
@@ -76,8 +76,8 @@ const returnType = describe("return type is correctly inferred", {
   }),
 
   withTransforms: test("with transforms", (opts: {
-    server: StandardSchemaDictionary.Matching<{ BAR: string }, { BAR: number }>;
-    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }, { BAR: number }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
   }) => {
     const env = createEnv({
       clientPrefix: "FOO_",
@@ -101,7 +101,7 @@ const returnType = describe("return type is correctly inferred", {
   }),
 
   withoutClientVars: test("without client vars", (opts: {
-    server: StandardSchemaDictionary.Matching<{ BAR: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }>;
   }) => {
     const env = createEnv({
       clientPrefix: "FOO_",
@@ -125,7 +125,7 @@ const returnType = describe("return type is correctly inferred", {
 });
 
 const numberAndBoolean = test("can pass number and booleans", (opts: {
-  server: StandardSchemaDictionary.Matching<{ PORT: number; IS_DEV: boolean }>;
+  server: StandardSchemaDictionary<{ PORT: number; IS_DEV: boolean }>;
 }) => {
   const env = createEnv({
     clientPrefix: "FOO_",
@@ -152,8 +152,8 @@ const numberAndBoolean = test("can pass number and booleans", (opts: {
 
 const failValidation = describe("errors when validation fails", {
   missingEnvs: test("envs are missing", (opts: {
-    server: StandardSchemaDictionary.Matching<{ BAR: string }>;
-    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
   }) => {
     expect(() =>
       createEnv({
@@ -165,8 +165,8 @@ const failValidation = describe("errors when validation fails", {
   }),
 
   invalidEnvs: test("envs are invalid", (opts: {
-    server: StandardSchemaDictionary.Matching<{ BAR: string }, { BAR: number }>;
-    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }, { BAR: number }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
   }) => {
     expect(() =>
       createEnv({
@@ -184,8 +184,8 @@ const failValidation = describe("errors when validation fails", {
     errorMessage,
     ...opts
   }: {
-    server: StandardSchemaDictionary.Matching<{ BAR: string }, { BAR: number }>;
-    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }, { BAR: number }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
     errorMessage: string;
   }) => {
     expect(() =>
@@ -211,8 +211,8 @@ const serverVarsOnClient = describe(
   "errors when server var is accessed on client",
   {
     withDefaultHandler: test("with default handler", (opts: {
-      server: StandardSchemaDictionary.Matching<{ BAR: string }>;
-      client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+      server: StandardSchemaDictionary<{ BAR: string }>;
+      client: StandardSchemaDictionary<{ FOO_BAR: string }>;
     }) => {
       const env = createEnv({
         clientPrefix: "FOO_",
@@ -229,8 +229,8 @@ const serverVarsOnClient = describe(
       );
     }),
     withCustomHandler: test("with custom handler", (opts: {
-      server: StandardSchemaDictionary.Matching<{ BAR: string }>;
-      client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+      server: StandardSchemaDictionary<{ BAR: string }>;
+      client: StandardSchemaDictionary<{ FOO_BAR: string }>;
     }) => {
       const env = createEnv({
         clientPrefix: "FOO_",
@@ -252,7 +252,7 @@ const serverVarsOnClient = describe(
 
 const clientOrServerOnly = describe("client/server only mode", {
   clientOnly: test("client only", (opts: {
-    client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
   }) => {
     const env = createEnv({
       clientPrefix: "FOO_",
@@ -270,7 +270,7 @@ const clientOrServerOnly = describe("client/server only mode", {
   }),
 
   serverOnly: test("server only", (opts: {
-    server: StandardSchemaDictionary.Matching<{ BAR: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }>;
   }) => {
     const env = createEnv({
       ...opts,
@@ -321,9 +321,9 @@ const sharedAccessOnClientOrServer =
     };
 
     interface LazyCreateEnvOptions {
-      shared: StandardSchemaDictionary.Matching<{ NODE_ENV: string }>;
-      server: StandardSchemaDictionary.Matching<{ BAR: string }>;
-      client: StandardSchemaDictionary.Matching<{ FOO_BAR: string }>;
+      shared: StandardSchemaDictionary<{ NODE_ENV: string }>;
+      server: StandardSchemaDictionary<{ BAR: string }>;
+      client: StandardSchemaDictionary<{ FOO_BAR: string }>;
     }
 
     function lazyCreateEnv(opts: LazyCreateEnvOptions) {
@@ -377,7 +377,7 @@ const sharedAccessOnClientOrServer =
   });
 
 const readonlyEnvs = test("envs are readonly", (opts: {
-  server: StandardSchemaDictionary.Matching<{ BAR: string }>;
+  server: StandardSchemaDictionary<{ BAR: string }>;
 }) => {
   const env = createEnv({
     ...opts,
