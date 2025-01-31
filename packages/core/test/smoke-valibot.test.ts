@@ -42,14 +42,8 @@ runSmokeTests({
   },
 
   serverVarsOnClient: {
-    withDefaultHandler: {
-      server: { BAR: v.string() },
-      client: { FOO_BAR: v.string() },
-    },
-    withCustomHandler: {
-      server: { BAR: v.string() },
-      client: { FOO_BAR: v.string() },
-    },
+    server: { BAR: v.string() },
+    client: { FOO_BAR: v.string() },
   },
 
   clientOrServerOnly: {
@@ -59,25 +53,14 @@ runSmokeTests({
     serverOnly: {
       server: { BAR: v.string() },
     },
-    configWithMissingClient: {},
-    configWithMissingClientPrefix: {},
   },
 
   sharedAccessOnClientOrServer: {
-    server: {
-      shared: {
-        NODE_ENV: v.picklist(["development", "production", "test"]),
-      },
-      server: { BAR: v.string() },
-      client: { FOO_BAR: v.string() },
+    shared: {
+      NODE_ENV: v.picklist(["development", "production", "test"]),
     },
-    client: {
-      shared: {
-        NODE_ENV: v.picklist(["development", "production", "test"]),
-      },
-      server: { BAR: v.string() },
-      client: { FOO_BAR: v.string() },
-    },
+    server: { BAR: v.string() },
+    client: { FOO_BAR: v.string() },
   },
 
   readonlyEnvs: {
@@ -91,35 +74,18 @@ runSmokeTests({
       client: { CLIENT_ENV: v.string() },
     },
     singlePreset: {
-      server: {
-        presetServer: { PRESET_ENV: v.string() },
-        server: { SERVER_ENV: v.string() },
-        client: { CLIENT_ENV: v.string() },
-        shared: { SHARED_ENV: v.string() },
-      },
-      client: {
-        presetServer: { PRESET_ENV: v.string() },
-        server: { SERVER_ENV: v.string() },
-        client: { CLIENT_ENV: v.string() },
-        shared: { SHARED_ENV: v.string() },
-      },
+      presetServer: { PRESET_ENV: v.string() },
+      server: { SERVER_ENV: v.string() },
+      client: { CLIENT_ENV: v.string() },
+      shared: { SHARED_ENV: v.string() },
     },
 
     multiplePresets: {
-      server: {
-        presetServer1: { PRESET_ENV1: v.picklist(["preset"]) },
-        presetServer2: { PRESET_ENV2: v.number() },
-        server: { SERVER_ENV: v.string() },
-        client: { CLIENT_ENV: v.string() },
-        shared: { SHARED_ENV: v.string() },
-      },
-      client: {
-        presetServer1: { PRESET_ENV1: v.picklist(["preset"]) },
-        presetServer2: { PRESET_ENV2: v.number() },
-        server: { SERVER_ENV: v.string() },
-        client: { CLIENT_ENV: v.string() },
-        shared: { SHARED_ENV: v.string() },
-      },
+      presetServer1: { PRESET_ENV1: v.picklist(["preset"]) },
+      presetServer2: { PRESET_ENV2: v.number() },
+      server: { SERVER_ENV: v.string() },
+      client: { CLIENT_ENV: v.string() },
+      shared: { SHARED_ENV: v.string() },
     },
   },
 });

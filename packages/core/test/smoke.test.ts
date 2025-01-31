@@ -4,10 +4,18 @@ import {
   expect,
   spyOn,
 } from "bun:test";
+import { combine, describe, test } from "create-test-factory/bun";
 import { expectTypeOf } from "expect-type";
 import type { StandardSchemaDictionary, StandardSchemaV1 } from "../src";
 import { createEnv } from "../src";
-import { combine, describe, ignoreErrors, test } from "./utils";
+
+export function ignoreErrors(cb: () => void) {
+  try {
+    cb();
+  } catch (err) {
+    // ignore
+  }
+}
 
 bunDescribe.skip("type only tests", () => {
   const stringSchema: StandardSchemaV1<string> = null as never;
@@ -249,13 +257,12 @@ const failValidation = describe("errors when validation fails", {
   }),
 });
 
-const serverVarsOnClient = describe(
-  "errors when server var is accessed on client",
-  {
-    withDefaultHandler: test("with default handler", (opts: {
-      server: StandardSchemaDictionary<{ BAR: string }>;
-      client: StandardSchemaDictionary<{ FOO_BAR: string }>;
-    }) => {
+const serverVarsOnClient =
+  describe("errors when server var is accessed on client", (opts: {
+    server: StandardSchemaDictionary<{ BAR: string }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
+  }) => ({
+    withDefaultHandler: test("with default handler", () => {
       const env = createEnv({
         clientPrefix: "FOO_",
         ...opts,
@@ -270,10 +277,7 @@ const serverVarsOnClient = describe(
         "❌ Attempted to access a server-side environment variable on the client",
       );
     }),
-    withCustomHandler: test("with custom handler", (opts: {
-      server: StandardSchemaDictionary<{ BAR: string }>;
-      client: StandardSchemaDictionary<{ FOO_BAR: string }>;
-    }) => {
+    withCustomHandler: test("with custom handler", () => {
       const env = createEnv({
         clientPrefix: "FOO_",
         ...opts,
@@ -289,8 +293,7 @@ const serverVarsOnClient = describe(
 
       expect(() => env.BAR).toThrow("Attempted to access BAR on the client");
     }),
-  },
-);
+  }));
 
 const clientOrServerOnly = describe("client/server only mode", {
   clientOnly: test("client only", (opts: {
@@ -355,20 +358,17 @@ const clientOrServerOnly = describe("client/server only mode", {
 });
 
 const sharedAccessOnClientOrServer =
-  describe("shared can be accessed on both server and client", () => {
+  describe("shared can be accessed on both server and client", (opts: {
+    shared: StandardSchemaDictionary<{ NODE_ENV: string }>;
+    server: StandardSchemaDictionary<{ BAR: string }>;
+    client: StandardSchemaDictionary<{ FOO_BAR: string }>;
+  }) => {
     process.env = {
       NODE_ENV: "development",
       BAR: "bar",
       FOO_BAR: "foo",
     };
-
-    interface LazyCreateEnvOptions {
-      shared: StandardSchemaDictionary<{ NODE_ENV: string }>;
-      server: StandardSchemaDictionary<{ BAR: string }>;
-      client: StandardSchemaDictionary<{ FOO_BAR: string }>;
-    }
-
-    function lazyCreateEnv(opts: LazyCreateEnvOptions) {
+    function lazyCreateEnv() {
       return createEnv({
         clientPrefix: "FOO_",
         ...opts,
@@ -385,12 +385,12 @@ const sharedAccessOnClientOrServer =
     >();
 
     return {
-      server: test("server", (opts: LazyCreateEnvOptions) => {
+      server: test("server", () => {
         const { window } = globalThis;
 
         globalThis.window = undefined as any;
 
-        const env = lazyCreateEnv(opts);
+        const env = lazyCreateEnv();
 
         expect(env).toMatchObject({
           NODE_ENV: "development",
@@ -401,11 +401,11 @@ const sharedAccessOnClientOrServer =
         globalThis.window = window;
       }),
 
-      client: test("client", (opts: LazyCreateEnvOptions) => {
+      client: test("client", () => {
         const { window } = globalThis;
         globalThis.window = {} as any;
 
-        const env = lazyCreateEnv(opts);
+        const env = lazyCreateEnv();
 
         expect(() => env.BAR).toThrow(
           "❌ Attempted to access a server-side environment variable on the client",
@@ -497,7 +497,12 @@ const extendingPresets = describe("extending presets", {
     consoleError.mockRestore();
   }),
 
-  singlePreset: describe("single preset", () => {
+  singlePreset: describe("single preset", (opts: {
+    presetServer: StandardSchemaDictionary<{ PRESET_ENV: string }>;
+    server: StandardSchemaDictionary<{ SERVER_ENV: string }>;
+    client: StandardSchemaDictionary<{ CLIENT_ENV: string }>;
+    shared: StandardSchemaDictionary<{ SHARED_ENV: string }>;
+  }) => {
     const processEnv = {
       PRESET_ENV: "preset",
       SHARED_ENV: "shared",
@@ -512,7 +517,8 @@ const extendingPresets = describe("extending presets", {
       shared: StandardSchemaDictionary<{ SHARED_ENV: string }>;
     }
 
-    function lazyCreateEnv({ presetServer, ...opts }: LazyCreateEnvOptions) {
+    function lazyCreateEnv() {
+      const { presetServer, ...rest } = opts;
       const preset = createEnv({
         server: presetServer,
         runtimeEnv: processEnv,
@@ -520,18 +526,18 @@ const extendingPresets = describe("extending presets", {
 
       return createEnv({
         clientPrefix: "CLIENT_",
-        ...opts,
+        ...rest,
         extends: [preset],
         runtimeEnv: processEnv,
       });
     }
 
     return {
-      server: test("server", (opts: LazyCreateEnvOptions) => {
+      server: test("server", () => {
         const { window } = globalThis;
         globalThis.window = undefined as any;
 
-        const env = lazyCreateEnv(opts);
+        const env = lazyCreateEnv();
 
         expect(env).toMatchObject({
           SERVER_ENV: "server",
@@ -543,10 +549,10 @@ const extendingPresets = describe("extending presets", {
         globalThis.window = window;
       }),
 
-      client: test("client", (opts: LazyCreateEnvOptions) => {
+      client: test("client", () => {
         const { window } = globalThis;
         globalThis.window = {} as any;
-        const env = lazyCreateEnv(opts);
+        const env = lazyCreateEnv();
 
         expect(() => env.SERVER_ENV).toThrow(
           "❌ Attempted to access a server-side environment variable on the client",
@@ -562,7 +568,13 @@ const extendingPresets = describe("extending presets", {
     };
   }),
 
-  multiplePresets: describe("multiple presets", () => {
+  multiplePresets: describe("multiple presets", (opts: {
+    presetServer1: StandardSchemaDictionary<{ PRESET_ENV1: "preset" }>;
+    presetServer2: StandardSchemaDictionary<{ PRESET_ENV2: number }>;
+    server: StandardSchemaDictionary<{ SERVER_ENV: string }>;
+    client: StandardSchemaDictionary<{ CLIENT_ENV: string }>;
+    shared: StandardSchemaDictionary<{ SHARED_ENV: string }>;
+  }) => {
     const processEnv = {
       PRESET_ENV1: "preset",
       PRESET_ENV2: 123,
@@ -571,19 +583,8 @@ const extendingPresets = describe("extending presets", {
       CLIENT_ENV: "client",
     };
 
-    interface LazyCreateEnvOptions {
-      presetServer1: StandardSchemaDictionary<{ PRESET_ENV1: "preset" }>;
-      presetServer2: StandardSchemaDictionary<{ PRESET_ENV2: number }>;
-      server: StandardSchemaDictionary<{ SERVER_ENV: string }>;
-      client: StandardSchemaDictionary<{ CLIENT_ENV: string }>;
-      shared: StandardSchemaDictionary<{ SHARED_ENV: string }>;
-    }
-
-    function lazyCreateEnv({
-      presetServer1,
-      presetServer2,
-      ...opts
-    }: LazyCreateEnvOptions) {
+    function lazyCreateEnv() {
+      const { presetServer1, presetServer2, ...rest } = opts;
       const preset1 = createEnv({
         server: presetServer1,
         runtimeEnv: processEnv,
@@ -595,7 +596,7 @@ const extendingPresets = describe("extending presets", {
 
       return createEnv({
         clientPrefix: "CLIENT_",
-        ...opts,
+        ...rest,
         extends: [preset1, preset2],
         runtimeEnv: processEnv,
       });
@@ -612,11 +613,11 @@ const extendingPresets = describe("extending presets", {
     >();
 
     return {
-      server: test("server", (opts: LazyCreateEnvOptions) => {
+      server: test("server", () => {
         const { window } = globalThis;
         globalThis.window = undefined as any;
 
-        const env = lazyCreateEnv(opts);
+        const env = lazyCreateEnv();
 
         expect(env).toMatchObject({
           PRESET_ENV1: "preset",
@@ -629,11 +630,11 @@ const extendingPresets = describe("extending presets", {
         globalThis.window = window;
       }),
 
-      client: test("client", (opts: LazyCreateEnvOptions) => {
+      client: test("client", () => {
         const { window } = globalThis;
         globalThis.window = {} as any;
 
-        const env = lazyCreateEnv(opts);
+        const env = lazyCreateEnv();
 
         expect(() => env.SERVER_ENV).toThrow(
           "❌ Attempted to access a server-side environment variable on the client",

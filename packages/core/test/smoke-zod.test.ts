@@ -42,14 +42,8 @@ runSmokeTests({
   },
 
   serverVarsOnClient: {
-    withDefaultHandler: {
-      server: { BAR: z.string() },
-      client: { FOO_BAR: z.string() },
-    },
-    withCustomHandler: {
-      server: { BAR: z.string() },
-      client: { FOO_BAR: z.string() },
-    },
+    server: { BAR: z.string() },
+    client: { FOO_BAR: z.string() },
   },
 
   clientOrServerOnly: {
@@ -59,25 +53,14 @@ runSmokeTests({
     serverOnly: {
       server: { BAR: z.string() },
     },
-    configWithMissingClient: {},
-    configWithMissingClientPrefix: {},
   },
 
   sharedAccessOnClientOrServer: {
-    server: {
-      shared: {
-        NODE_ENV: z.enum(["development", "production", "test"]),
-      },
-      server: { BAR: z.string() },
-      client: { FOO_BAR: z.string() },
+    shared: {
+      NODE_ENV: z.enum(["development", "production", "test"]),
     },
-    client: {
-      shared: {
-        NODE_ENV: z.enum(["development", "production", "test"]),
-      },
-      server: { BAR: z.string() },
-      client: { FOO_BAR: z.string() },
-    },
+    server: { BAR: z.string() },
+    client: { FOO_BAR: z.string() },
   },
 
   readonlyEnvs: {
@@ -92,35 +75,18 @@ runSmokeTests({
     },
 
     singlePreset: {
-      server: {
-        presetServer: { PRESET_ENV: z.string() },
-        server: { SERVER_ENV: z.string() },
-        client: { CLIENT_ENV: z.string() },
-        shared: { SHARED_ENV: z.string() },
-      },
-      client: {
-        presetServer: { PRESET_ENV: z.string() },
-        server: { SERVER_ENV: z.string() },
-        client: { CLIENT_ENV: z.string() },
-        shared: { SHARED_ENV: z.string() },
-      },
+      presetServer: { PRESET_ENV: z.string() },
+      server: { SERVER_ENV: z.string() },
+      client: { CLIENT_ENV: z.string() },
+      shared: { SHARED_ENV: z.string() },
     },
 
     multiplePresets: {
-      server: {
-        presetServer1: { PRESET_ENV1: z.enum(["preset"]) },
-        presetServer2: { PRESET_ENV2: z.number() },
-        server: { SERVER_ENV: z.string() },
-        client: { CLIENT_ENV: z.string() },
-        shared: { SHARED_ENV: z.string() },
-      },
-      client: {
-        presetServer1: { PRESET_ENV1: z.enum(["preset"]) },
-        presetServer2: { PRESET_ENV2: z.number() },
-        server: { SERVER_ENV: z.string() },
-        client: { CLIENT_ENV: z.string() },
-        shared: { SHARED_ENV: z.string() },
-      },
+      presetServer1: { PRESET_ENV1: z.enum(["preset"]) },
+      presetServer2: { PRESET_ENV2: z.number() },
+      server: { SERVER_ENV: z.string() },
+      client: { CLIENT_ENV: z.string() },
+      shared: { SHARED_ENV: z.string() },
     },
   },
 });
