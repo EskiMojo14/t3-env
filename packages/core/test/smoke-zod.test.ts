@@ -82,7 +82,7 @@ runSmokeTests({
     },
 
     multiplePresets: {
-      presetServer1: { PRESET_ENV1: z.enum(["preset"]) },
+      presetServer1: { PRESET_ENV1: z.literal("preset") },
       presetServer2: { PRESET_ENV2: z.number() },
       server: { SERVER_ENV: z.string() },
       client: { CLIENT_ENV: z.string() },

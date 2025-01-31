@@ -81,7 +81,7 @@ runSmokeTests({
     },
 
     multiplePresets: {
-      presetServer1: { PRESET_ENV1: v.picklist(["preset"]) },
+      presetServer1: { PRESET_ENV1: v.literal("preset") },
       presetServer2: { PRESET_ENV2: v.number() },
       server: { SERVER_ENV: v.string() },
       client: { CLIENT_ENV: v.string() },
